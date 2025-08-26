@@ -5,7 +5,10 @@ export default class Game {
     this.size = 4;
     this.score = 0;
     this.status = 'idle';
-    this.board = initialState || this.createEmptyBoard();
+
+    this.board = initialState
+      ? initialState.map((row) => [...row])
+      : this.createEmptyBoard();
   }
 
   createEmptyBoard() {
@@ -17,7 +20,7 @@ export default class Game {
   }
 
   getState() {
-    return this.board;
+    return this.board.map((row) => [...row]);
   }
 
   getStatus() {
@@ -56,11 +59,11 @@ export default class Game {
         merged.push(0);
       }
 
-      if (!moved && !this.arraysEqual(merged, row)) {
+      if (!this.arraysEqual(merged, row)) {
         moved = true;
-
-        return merged;
       }
+
+      return merged;
     });
 
     if (moved) {
@@ -123,6 +126,10 @@ export default class Game {
   }
 
   arraysEqual(a, b) {
+    if (a.length !== b.length) {
+      return false;
+    }
+
     return a.every((v, i) => v === b[i]);
   }
 
@@ -147,7 +154,7 @@ export default class Game {
         const val = this.board[r][c];
 
         if (val === 2048) {
-          this.status = 'win';
+          this.status = 'won';
 
           return;
         }
@@ -155,7 +162,7 @@ export default class Game {
     }
 
     if (!this.canMove()) {
-      this.status = 'lose';
+      this.status = 'over'; // poprawiona nazwa
     }
   }
 
