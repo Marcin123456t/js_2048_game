@@ -40,18 +40,28 @@ export default class Game {
   }
 
   moveLeft() {
+    if (this.status !== 'playing') {
+      return false;
+    }
+
     let moved = false;
     const newBoard = this.board.map((row) => {
-      const filtered = row.filter((n) => n !== 0);
+      const compressed = row.filter((n) => n !== 0);
       const merged = [];
+      let skip = false;
 
-      for (let i = 0; i < filtered.length; i++) {
-        if (filtered[i] === filtered[i + 1]) {
-          merged.push(filtered[i] * 2);
-          this.score += filtered[i] * 2;
-          i++;
+      for (let i = 0; i < compressed.length; i++) {
+        if (!skip && compressed[i] === compressed[i + 1]) {
+          merged.push(compressed[i] * 2);
+          this.score += compressed[i] * 2;
+          skip = true;
+          moved = true;
         } else {
-          merged.push(filtered[i]);
+          if (skip) {
+            skip = false;
+          } else {
+            merged.push(compressed[i]);
+          }
         }
       }
 
@@ -76,31 +86,70 @@ export default class Game {
   }
 
   moveRight() {
-    this.reverseRows();
+    if (this.status !== 'playing') {
+      return false;
+    }
 
-    const moved = this.moveLeft();
+    const reversed = this.board.map((row) => [...row].reverse());
+    const newGame = new Game(reversed);
 
-    this.reverseRows();
+    newGame.score = this.score;
+    newGame.status = this.status;
+
+    const moved = newGame.moveLeft();
+
+    if (moved) {
+      this.board = newGame.board.map((row) => [...row].reverse());
+      this.score = newGame.score;
+      this.checkStatus();
+    }
 
     return moved;
   }
 
   moveUp() {
-    this.transpose();
+    if (this.status !== 'playing') {
+      return false;
+    }
 
-    const moved = this.moveLeft();
+    const transposed = this.transpose(this.board);
+    const newGame = new Game(transposed);
 
-    this.transpose();
+    newGame.score = this.score;
+    newGame.status = this.status;
+
+    const moved = newGame.moveLeft();
+
+    if (moved) {
+      this.board = this.transpose(newGame.board);
+      this.score = newGame.score;
+      this.checkStatus();
+    }
 
     return moved;
   }
 
   moveDown() {
-    this.transpose();
+    if (this.status !== 'playing') {
+      return false;
+    }
 
-    const moved = this.moveRight();
+    const rawTransposed = this.transpose(this.board);
+    const transposed = rawTransposed.map((row) => [...row].reverse());
+    const newGame = new Game(transposed);
 
-    this.transpose();
+    newGame.score = this.score;
+    newGame.status = this.status;
+
+    const moved = newGame.moveLeft();
+
+    if (moved) {
+      this.board = this.transpose(
+        newGame.board.map((row) => [...row].reverse()),
+      );
+      this.score = newGame.score;
+      this.checkStatus();
+    }
 
     return moved;
   }
@@ -108,10 +157,10 @@ export default class Game {
   addRandomTile() {
     const emptyCells = [];
 
-    for (let row = 0; row < this.size; row++) {
-      for (let col = 0; col < this.size; col++) {
-        if (this.board[row][col] === 0) {
-          emptyCells.push([row, col]);
+    for (let r1 = 0; r1 < this.size; r1++) {
+      for (let c2 = 0; c2 < this.size; c2++) {
+        if (this.board[r1][c2] === 0) {
+          emptyCells.push([r1, c2]);
         }
       }
     }
@@ -133,27 +182,22 @@ export default class Game {
     return a.every((v, i) => v === b[i]);
   }
 
-  reverseRows() {
-    this.board = this.board.map((row) => row.reverse());
-  }
-
-  transpose() {
+  transpose(board) {
     const newBoard = this.createEmptyBoard();
 
     for (let r = 0; r < this.size; r++) {
       for (let c = 0; c < this.size; c++) {
-        newBoard[c][r] = this.board[r][c];
+        newBoard[c][r] = board[r][c];
       }
     }
-    this.board = newBoard;
+
+    return newBoard;
   }
 
   checkStatus() {
     for (let r = 0; r < this.size; r++) {
       for (let c = 0; c < this.size; c++) {
-        const val = this.board[r][c];
-
-        if (val === 2048) {
+        if (this.board[r][c] === 2048) {
           this.status = 'won';
 
           return;
@@ -162,7 +206,7 @@ export default class Game {
     }
 
     if (!this.canMove()) {
-      this.status = 'over'; // poprawiona nazwa
+      this.status = 'over';
     }
   }
 
